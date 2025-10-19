@@ -66,14 +66,12 @@ class OAuthExchangeResponse(TokenPayload):
 @dataclass
 class RefreshTokenRequest:
     user_id: str
-    refresh_token: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "RefreshTokenRequest":
         if "user_id" not in data:
             raise ValueError("Missing user_id for refresh request")
-        refresh_token = data.get("refresh_token")
-        return cls(user_id=str(data["user_id"]), refresh_token=refresh_token)
+        return cls(user_id=str(data["user_id"]))
 
 
 @dataclass
