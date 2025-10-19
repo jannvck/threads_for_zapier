@@ -6,7 +6,7 @@ import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Type
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from .config import Settings, get_settings
 from .schemas import (
@@ -29,15 +29,6 @@ def create_service(settings: Settings | None = None) -> ThreadsZapierService:
     return ThreadsZapierService(settings, client, store)
 
 
-def _normalize_path(raw_path: str) -> str:
-    """Normalize incoming request paths for consistent routing."""
-
-    if not raw_path:
-        return "/"
-    normalized = raw_path.rstrip("/")
-    return normalized or "/"
-
-
 def create_handler_factory(service: ThreadsZapierService, settings: Settings) -> Type[BaseHTTPRequestHandler]:
     class ThreadsHandler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -50,21 +41,13 @@ def create_handler_factory(service: ThreadsZapierService, settings: Settings) ->
             self.end_headers()
             self.wfile.write(body)
 
-        def _read_body(self) -> bytes:
-            length = int(self.headers.get("Content-Length", "0"))
-            return self.rfile.read(length) if length > 0 else b""
-
         def _read_json(self) -> dict:
-            data = self._read_body() or b"{}"
+            length = int(self.headers.get("Content-Length", "0"))
+            data = self.rfile.read(length) if length > 0 else b"{}"
             try:
                 return json.loads(data.decode("utf-8"))
             except json.JSONDecodeError as exc:
                 raise ServiceError("Invalid JSON payload", status_code=400) from exc
-
-        def _read_form(self) -> dict[str, str]:
-            raw = self._read_body().decode("utf-8")
-            form = parse_qs(raw, keep_blank_values=True)
-            return {key: values[-1] for key, values in form.items() if values}
 
         def _validate_zapier(self) -> None:
             token = settings.zapier_verification_token
@@ -76,92 +59,28 @@ def create_handler_factory(service: ThreadsZapierService, settings: Settings) ->
 
         def do_GET(self) -> None:  # noqa: N802 (BaseHTTPRequestHandler naming)
             parsed = urlparse(self.path)
-            path = _normalize_path(parsed.path)
-
-            if path == "/healthz":
+            if parsed.path == "/healthz":
                 self._json_response(HTTPStatus.OK, {"status": "ok"})
-                return
-            if path == "/oauth/authorize":
-                params = parse_qs(parsed.query)
-                state = params.get("state", [None])[0]
-                redirect_uri = params.get("redirect_uri", [None])[0]
-                scope = params.get("scope", [None])[0]
-                location = service.build_authorize_url(
-                    state=state, redirect_uri=redirect_uri, scope=scope
-                )
-                self.send_response(HTTPStatus.FOUND.value)
-                self.send_header("Location", location)
-                self.end_headers()
                 return
             self._json_response(HTTPStatus.NOT_FOUND, {"detail": "Not found"})
 
         def do_POST(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
-            path = _normalize_path(parsed.path)
             try:
-                if path == "/oauth/exchange":
+                if parsed.path == "/oauth/exchange":
                     payload = OAuthExchangeRequest.from_dict(self._read_json())
                     response = service.exchange_token(payload)
                     self._json_response(HTTPStatus.OK, response.to_dict())
-                elif path == "/oauth/refresh":
+                elif parsed.path == "/oauth/refresh":
                     payload = RefreshTokenRequest.from_dict(self._read_json())
                     response = service.refresh_token(payload)
                     self._json_response(HTTPStatus.OK, response.to_dict())
-                elif path == "/oauth/token":
-                    form = self._read_form()
-                    grant_type = form.get("grant_type")
-                    if grant_type == "authorization_code":
-                        code = form.get("code")
-                        state = form.get("state") or form.get("user_id")
-                        if not code:
-                            self._json_response(
-                                HTTPStatus.BAD_REQUEST,
-                                {"detail": "Missing authorization code"},
-                            )
-                            return
-                        if not state:
-                            self._json_response(
-                                HTTPStatus.BAD_REQUEST,
-                                {"detail": "Missing state parameter for user identification"},
-                            )
-                            return
-                        redirect_uri = form.get("redirect_uri")
-                        payload = OAuthExchangeRequest(
-                            code=code,
-                            user_id=state,
-                            redirect_uri=redirect_uri,
-                        )
-                        response = service.exchange_token(payload)
-                        self._json_response(HTTPStatus.OK, response.to_dict())
-                    elif grant_type == "refresh_token":
-                        refresh_token = form.get("refresh_token")
-                        state = form.get("state") or form.get("user_id")
-                        if not refresh_token:
-                            self._json_response(
-                                HTTPStatus.BAD_REQUEST,
-                                {"detail": "Missing refresh token"},
-                            )
-                            return
-                        if not state:
-                            self._json_response(
-                                HTTPStatus.BAD_REQUEST,
-                                {"detail": "Missing state parameter for user identification"},
-                            )
-                            return
-                        payload = RefreshTokenRequest(user_id=state, refresh_token=refresh_token)
-                        response = service.refresh_token(payload)
-                        self._json_response(HTTPStatus.OK, response.to_dict())
-                    else:
-                        self._json_response(
-                            HTTPStatus.BAD_REQUEST,
-                            {"detail": "Unsupported grant_type"},
-                        )
-                elif path == "/zapier/actions/create-thread":
+                elif parsed.path == "/zapier/actions/create-thread":
                     self._validate_zapier()
                     payload = CreateThreadRequest.from_dict(self._read_json())
                     response = service.create_thread(payload)
                     self._json_response(HTTPStatus.OK, response.to_dict())
-                elif path == "/zapier/triggers/new-thread":
+                elif parsed.path == "/zapier/triggers/new-thread":
                     self._validate_zapier()
                     payload = NewThreadsTriggerRequest.from_dict(self._read_json())
                     response = service.fetch_threads(payload)
