@@ -61,6 +61,8 @@ Alle Einstellungen erfolgen über Umgebungsvariablen mit dem Präfix `THREADS_ZA
 | `THREADS_ZAPIER_ZAPIER_VERIFICATION_TOKEN` | Optionaler Token zur Request-Prüfung | leer |
 | `THREADS_ZAPIER_REQUEST_TIMEOUT_SECONDS` | Timeout für Threads-API Aufrufe | `10.0` |
 
+Für den Betrieb auf **Google Cloud Run** (oder andere Plattformen mit Secret-Files) werden zusätzlich automatisch Umgebungsvariablen mit der Endung `_FILE` ausgewertet. Enthält beispielsweise `THREADS_ZAPIER_THREADS_CLIENT_SECRET_FILE` den Pfad zu einer Datei, wird deren Inhalt als Secret geladen. Damit lassen sich Secrets komfortabel über `gcloud run deploy --set-secrets` bereitstellen.
+
 ## Docker Build & lokaler Test
 
 ```bash
