@@ -41,13 +41,10 @@ class ThreadsZapierService:
         )
 
     def refresh_token(self, request: RefreshTokenRequest) -> OAuthExchangeResponse:
-        refresh_value = request.refresh_token
-        if refresh_value is None:
-            stored = self._require_token(request.user_id)
-            if not stored.token.refresh_token:
-                raise ServiceError("Refresh token not available", status_code=400)
-            refresh_value = stored.token.refresh_token
-        token = self._client.refresh_access_token(refresh_value)
+        stored = self._require_token(request.user_id)
+        if not stored.token.refresh_token:
+            raise ServiceError("Refresh token not available", status_code=400)
+        token = self._client.refresh_access_token(stored.token.refresh_token)
         stored = self._store.save(request.user_id, token)
         return OAuthExchangeResponse(
             access_token=token.access_token,
@@ -56,17 +53,6 @@ class ThreadsZapierService:
             token_type=token.token_type,
             scope=token.scope,
             obtained_at=stored.obtained_at,
-        )
-
-    def build_authorize_url(
-        self,
-        *,
-        state: str | None,
-        redirect_uri: str | None = None,
-        scope: str | None = None,
-    ) -> str:
-        return self._client.build_authorize_url(
-            state=state, redirect_uri=redirect_uri, scope=scope
         )
 
     def create_thread(self, request: CreateThreadRequest) -> CreateThreadResponse:

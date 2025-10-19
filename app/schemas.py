@@ -47,17 +47,10 @@ class OAuthExchangeRequest:
 
     @classmethod
     def from_dict(cls, data: dict) -> "OAuthExchangeRequest":
-        if "code" not in data:
+        if "code" not in data or "user_id" not in data:
             raise ValueError("Missing required fields for OAuth exchange")
-        user_identifier = data.get("user_id") or data.get("state")
-        if user_identifier is None:
-            raise ValueError("Missing user identifier for OAuth exchange")
         redirect = data.get("redirect_uri")
-        return cls(
-            code=str(data["code"]),
-            user_id=str(user_identifier),
-            redirect_uri=redirect,
-        )
+        return cls(code=str(data["code"]), user_id=str(data["user_id"]), redirect_uri=redirect)
 
 
 @dataclass
@@ -73,15 +66,12 @@ class OAuthExchangeResponse(TokenPayload):
 @dataclass
 class RefreshTokenRequest:
     user_id: str
-    refresh_token: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "RefreshTokenRequest":
-        user_identifier = data.get("user_id") or data.get("state")
-        if user_identifier is None:
-            raise ValueError("Missing user identifier for refresh request")
-        refresh_token = data.get("refresh_token")
-        return cls(user_id=str(user_identifier), refresh_token=refresh_token)
+        if "user_id" not in data:
+            raise ValueError("Missing user_id for refresh request")
+        return cls(user_id=str(data["user_id"]))
 
 
 @dataclass
