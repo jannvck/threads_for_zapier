@@ -1,0 +1,1 @@
+# Runtime has no external dependencies; install pytest separately for development if needed.
