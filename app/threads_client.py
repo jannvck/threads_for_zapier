@@ -21,26 +21,6 @@ class ThreadsClient:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    def build_authorize_url(
-        self,
-        *,
-        state: str,
-        redirect_uri: Optional[str] = None,
-        scope: Optional[str] = None,
-    ) -> str:
-        redirect = redirect_uri or self._settings.threads_redirect_uri
-        params: Dict[str, Any] = {
-            "client_id": self._settings.threads_client_id,
-            "response_type": "code",
-            "redirect_uri": redirect,
-            "state": state,
-        }
-        scope_value = scope or self._settings.threads_scope
-        if scope_value:
-            params["scope"] = scope_value
-        query = parse.urlencode(params)
-        return f"{self._settings.threads_authorize_url}?{query}"
-
     def exchange_code_for_token(self, code: str, redirect_uri: Optional[str]) -> TokenPayload:
         payload = {
             "client_id": self._settings.threads_client_id,

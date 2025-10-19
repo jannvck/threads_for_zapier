@@ -55,17 +55,6 @@ class ThreadsZapierService:
             obtained_at=stored.obtained_at,
         )
 
-    def build_authorize_url(
-        self,
-        *,
-        state: str,
-        redirect_uri: str | None = None,
-        scope: str | None = None,
-    ) -> str:
-        return self._client.build_authorize_url(
-            state=state, redirect_uri=redirect_uri, scope=scope
-        )
-
     def create_thread(self, request: CreateThreadRequest) -> CreateThreadResponse:
         stored = self._require_token(request.user_id)
         try:

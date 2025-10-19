@@ -4,7 +4,7 @@ Dieser Dienst stellt einen leichtgewichtigen HTTP-Endpunkt zur Verfügung, der z
 
 ## Funktionsumfang
 
-- **OAuth-Fluss für Threads**: Endpunkte zum Authorisieren (`/oauth/authorize`), Tauschen (`/oauth/exchange`) und Aktualisieren (`/oauth/refresh`) von Tokens.
+- **OAuth-Fluss für Threads**: Endpunkte zum Tauschen (`/oauth/exchange`) und Aktualisieren (`/oauth/refresh`) von Tokens.
 - **Zapier Action**: `/zapier/actions/create-thread` zum Erstellen eines neuen Threads.
 - **Zapier Trigger**: `/zapier/triggers/new-thread` gibt neue Beiträge eines Users für Polling-Zaps zurück.
 - **Signaturprüfung**: Optionaler Header-Abgleich über `THREADS_ZAPIER_ZAPIER_VERIFICATION_TOKEN`.
@@ -57,9 +57,7 @@ Alle Einstellungen erfolgen über Umgebungsvariablen mit dem Präfix `THREADS_ZA
 | `THREADS_ZAPIER_THREADS_API_BASE_URL` | Basis-URL der Threads API | `https://graph.threads.net` |
 | `THREADS_ZAPIER_THREADS_CLIENT_ID` | OAuth Client ID | `demo-client-id` |
 | `THREADS_ZAPIER_THREADS_CLIENT_SECRET` | OAuth Client Secret | `demo-client-secret` |
-| `THREADS_ZAPIER_THREADS_AUTHORIZE_URL` | Basis-URL des Threads OAuth-Autorisierungsendpunkts | `https://www.threads.net/oauth/authorize` |
 | `THREADS_ZAPIER_THREADS_REDIRECT_URI` | Registrierte Redirect-URL | `https://example.com/oauth/callback` |
-| `THREADS_ZAPIER_THREADS_SCOPE` | Optionaler Scope-Parameter für OAuth | leer |
 | `THREADS_ZAPIER_ZAPIER_VERIFICATION_TOKEN` | Optionaler Token zur Request-Prüfung | leer |
 | `THREADS_ZAPIER_REQUEST_TIMEOUT_SECONDS` | Timeout für Threads-API Aufrufe | `10.0` |
 
@@ -105,11 +103,6 @@ gcloud run deploy threads-zapier \
    ```
 
 4. **Zapier verbinden**: Verwende die Cloud-Run-URL als Basis und ergänze die obigen Pfade für Actions/Trigger.
-
-   Für den OAuth-Autorisierungs-Redirect erwartet Zapier einen öffentlichen Endpunkt `https://<CLOUD_RUN_HOST>/oauth/authorize`,
-   der nun automatisch auf die Threads-Anmeldeseite weiterleitet. Stelle sicher, dass in deiner Threads-App die Zapier-Redirect-URL
-   (z. B. `https://zapier.com/dashboard/auth/oauth/<APP_ID>/oauth/authorize`) erlaubt ist und optional der gewünschte Scope über
-   `THREADS_ZAPIER_THREADS_SCOPE` gesetzt wurde.
 
 ## Weiterentwicklung
 

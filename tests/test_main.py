@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import pathlib
 import sys
-from datetime import datetime, timedelta
-from urllib.parse import urlencode
 
 import pytest
 
@@ -23,25 +22,6 @@ from app.storage import InMemoryTokenStore
 
 
 class DummyThreadsClient:
-    def build_authorize_url(
-        self,
-        *,
-        state: str,
-        redirect_uri: str | None = None,
-        scope: str | None = None,
-    ) -> str:
-        assert state == "state-123"
-        redirect = redirect_uri or "https://example.com/oauth/callback"
-        scope_value = scope or "threads.basic"
-        query = urlencode(
-            {
-                "state": state,
-                "redirect_uri": redirect,
-                "scope": scope_value,
-            }
-        )
-        return f"https://auth.threads.test/oauth?{query}"
-
     def exchange_code_for_token(self, code: str, redirect_uri: str | None):
         return TokenPayload(access_token="access", refresh_token="refresh", expires_in=3600, scope="threads.write")
 
@@ -89,10 +69,7 @@ class DummyThreadsClient:
 
 @pytest.fixture
 def service() -> ThreadsZapierService:
-    settings = Settings(
-        threads_redirect_uri="https://example.com/oauth/callback",
-        threads_scope="threads.basic",
-    )
+    settings = Settings()
     store = InMemoryTokenStore()
     store.save("user-1", TokenPayload(access_token="access-token", refresh_token="refresh", expires_in=3600))
     client = DummyThreadsClient()
@@ -120,17 +97,6 @@ def test_exchange_and_refresh(service: ThreadsZapierService):
     refresh_request = RefreshTokenRequest(user_id="user-1")
     refresh_response = service.refresh_token(refresh_request)
     assert refresh_response.access_token == "new-access"
-
-
-def test_build_authorize_url(service: ThreadsZapierService):
-    url = service.build_authorize_url(
-        state="state-123",
-        redirect_uri="https://zapier.com/dashboard/auth/oauth/App123/oauth/callback",
-    )
-    assert url.startswith("https://auth.threads.test/oauth")
-    assert "state=state-123" in url
-    assert "redirect_uri=https%3A%2F%2Fzapier.com%2Fdashboard%2Fauth%2Foauth%2FApp123%2Foauth%2Fcallback" in url
-    assert "scope=threads.basic" in url
 
 
 def test_missing_user_token_raises(service: ThreadsZapierService):

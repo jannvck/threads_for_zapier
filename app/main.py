@@ -6,7 +6,7 @@ import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Type
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from .config import Settings, get_settings
 from .schemas import (
@@ -61,21 +61,6 @@ def create_handler_factory(service: ThreadsZapierService, settings: Settings) ->
             parsed = urlparse(self.path)
             if parsed.path == "/healthz":
                 self._json_response(HTTPStatus.OK, {"status": "ok"})
-                return
-            if parsed.path == "/oauth/authorize":
-                params = parse_qs(parsed.query)
-                state = params.get("state", [None])[0]
-                if not state:
-                    self._json_response(HTTPStatus.BAD_REQUEST, {"detail": "Missing state parameter"})
-                    return
-                redirect_uri = params.get("redirect_uri", [None])[0]
-                scope = params.get("scope", [None])[0]
-                location = service.build_authorize_url(
-                    state=state, redirect_uri=redirect_uri, scope=scope
-                )
-                self.send_response(HTTPStatus.FOUND.value)
-                self.send_header("Location", location)
-                self.end_headers()
                 return
             self._json_response(HTTPStatus.NOT_FOUND, {"detail": "Not found"})
 
