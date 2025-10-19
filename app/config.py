@@ -1,0 +1,26 @@
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+
+
+@dataclass
+class Settings:
+    threads_api_base_url: str = os.getenv("THREADS_ZAPIER_THREADS_API_BASE_URL", "https://graph.threads.net")
+    threads_client_id: str = os.getenv("THREADS_ZAPIER_THREADS_CLIENT_ID", "demo-client-id")
+    threads_client_secret: str = os.getenv("THREADS_ZAPIER_THREADS_CLIENT_SECRET", "demo-client-secret")
+    threads_redirect_uri: str = os.getenv(
+        "THREADS_ZAPIER_THREADS_REDIRECT_URI", "https://example.com/oauth/callback"
+    )
+    zapier_verification_token: str | None = os.getenv("THREADS_ZAPIER_ZAPIER_VERIFICATION_TOKEN")
+    request_timeout_seconds: float = float(os.getenv("THREADS_ZAPIER_REQUEST_TIMEOUT_SECONDS", "10.0"))
+
+
+_settings: Settings | None = None
+
+
+def get_settings() -> Settings:
+    global _settings
+    if _settings is None:
+        _settings = Settings()
+    return _settings
